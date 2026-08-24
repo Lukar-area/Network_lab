@@ -1,0 +1,84 @@
+int* countBits(int n, int* returnSize) {
+    *returnSize = n + 1;
+    int* ans = (int*)malloc((*returnSize) * sizeof(int));
+    
+    ans[0] = 0;
+    for (int i = 1; i <= n; i++) {
+        ans[i] = ans[i >> 1] + (i & 1);
+    }
+    
+    return ans;
+}
+
+int findComplement(int num) {
+    unsigned int mask = ~0;
+    while (num & mask) {
+        mask <<= 1;
+    }
+    return ~mask ^ num;
+}
+
+#include <stdbool.h>
+
+// Simple hash set implementation for 32-bit integers
+typedef struct {
+    int key;
+    bool used;
+} HashEntry;
+
+void insert(HashEntry* table, int size, int key) {
+    int idx = (key % size + size) % size;
+    while (table[idx].used) {
+        if (table[idx].key == key) return;
+        idx = (idx + 1) % size;
+    }
+    table[idx].key = key;
+    table[idx].used = true;
+}
+
+bool contains(HashEntry* table, int size, int key) {
+    int idx = (key % size + size) % size;
+    while (table[idx].used) {
+        if (table[idx].key == key) return true;
+        idx = (idx + 1) % size;
+    }
+    return false;
+}
+
+int findMaximumXOR(int* nums, int numsSize) {
+    int maxResult = 0;
+    int mask = 0;
+    
+    // Allocate a hash table large enough to minimize collisions
+    int tableSize = numsSize * 2;
+    HashEntry* table = (HashEntry*)calloc(tableSize, sizeof(HashEntry));
+
+    // Evaluate each bit position from Most Significant (30) down to Least Significant (0)
+    for (int i = 30; i >= 0; i--) {
+        // Set the i-th bit in the mask
+        mask |= (1 << i);
+        
+        // Clear hash table for the current bit position scan
+        memset(table, 0, tableSize * sizeof(HashEntry));
+        
+        // Store prefixes of all numbers up to the current bit position
+        for (int j = 0; j < numsSize; j++) {
+            insert(table, tableSize, nums[j] & mask);
+        }
+        
+        // Speculate if the i-th bit can be a '1' in the maximum XOR result
+        int greedyCandidate = maxResult | (1 << i);
+        
+        for (int j = 0; j < numsSize; j++) {
+            int prefix = nums[j] & mask;
+            // Mathematical property: If A ^ B = C, then A ^ C = B
+            if (contains(table, tableSize, prefix ^ greedyCandidate)) {
+                maxResult = greedyCandidate;
+                break;
+            }
+        }
+    }
+    
+    free(table);
+    return maxResult;
+}
