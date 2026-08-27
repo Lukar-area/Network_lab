@@ -1,0 +1,79 @@
+1) 
+char* addBinary(char* a, char* b) {
+    int lenA = strlen(a);
+    int lenB = strlen(b);
+    int maxLen = lenA > lenB ? lenA : lenB;
+    char* res = (char*)malloc(maxLen + 2);
+    int i = lenA - 1;
+    int j = lenB - 1;
+    int k = maxLen + 1;
+    res[k] = '\0';
+    int carry = 0;
+    while (i >= 0 || j >= 0 || carry) {
+        int sum = carry;
+        if (i >= 0) sum += a[i--] - '0';
+        if (j >= 0) sum += b[j--] - '0';
+        res[--k] = (sum % 2) + '0';
+        carry = sum / 2;
+    }
+    return res + k;
+}
+
+
+2)
+bool hasAlternatingBits(int n) {
+    long x = n ^ (n >> 1);
+    return (x & (x + 1)) == 0;
+}
+
+
+3)
+#include <stdlib.h>
+
+int cmp(const void* a, const void* b) {
+    return (*(int*)a - *(int*)b);
+}
+
+int subarrayBitwiseORs(int* arr, int arrSize) {
+    int* res = (int*)malloc(sizeof(int) * arrSize * 32);
+    int resSize = 0;
+    int left = 0, right = 0;
+
+    for (int i = 0; i < arrSize; i++) {
+        int nextRight = resSize;
+        res[resSize++] = arr[i];
+
+        for (int j = left; j < right; j++) {
+            int val = res[j] | arr[i];
+            if (res[resSize - 1] != val) {
+                res[resSize++] = val;
+            }
+        }
+        
+        int writeIdx = nextRight + 1;
+        for (int j = nextRight + 1; j < resSize; j++) {
+            if (res[j] != res[writeIdx - 1]) {
+                res[writeIdx++] = res[j];
+            }
+        }
+        resSize = writeIdx;
+        left = nextRight;
+        right = resSize;
+    }
+
+    // Fast O(N log N) sorting using qsort instead of O(N^2) insertion sort
+    qsort(res, resSize, sizeof(int), cmp);
+
+    int distinctCount = 0;
+    if (resSize > 0) {
+        distinctCount = 1;
+        for (int i = 1; i < resSize; i++) {
+            if (res[i] != res[i - 1]) {
+                res[distinctCount++] = res[i];
+            }
+        }
+    }
+
+    free(res);
+    return distinctCount;
+}
