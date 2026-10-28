@@ -1,0 +1,349 @@
+[24bcs114@mepcolinux ex4]$cat dijkstra.h
+#ifndef DIJKSTRA_H
+#define DIJKSTRA_H
+#define MAX 20
+#define INF 9999
+void getInput(int cost[MAX][MAX], int *n, int *source, int *destination);
+void dijkstra(int cost[MAX][MAX], int n, int source, int distance[MAX], int parent[MAX]);
+void displayPath(int distance[MAX], int parent[MAX], int source, int destination);
+void displayRoutingTable(int distance[MAX], int parent[MAX], int n, int source);
+#endif
+[24bcs114@mepcolinux ex4]$cat dijkstraimp.c
+#include <stdio.h>
+#include "dijkstra.h"
+void getInput(int cost[MAX][MAX], int *n, int *source, int *destination)
+{
+    int i, j;
+    printf("Enter number of vertices: ");
+    scanf("%d", n);
+    printf("\nEnter the cost matrix:\n");
+    for (i = 0; i < *n; i++)
+    {
+        for (j = 0; j < *n; j++)
+        {
+            printf("Cost from %d to %d: ", i + 1, j + 1);
+            scanf("%d", &cost[i][j]);
+
+            if (i != j && cost[i][j] == 0)
+                cost[i][j] = INF;
+        }
+    }
+    printf("\nEnter source vertex: ");
+    scanf("%d", source);
+    printf("Enter destination vertex: ");
+    scanf("%d", destination);
+    (*source)--;
+    if (*destination != -1)
+    {
+        (*destination)--;
+    }
+}
+void dijkstra(int cost[MAX][MAX], int n, int source,int distance[MAX], int parent[MAX])
+{
+    int visited[MAX];
+    int i, j;
+    int min, u;
+    for (i = 0; i < n; i++)
+    {
+        distance[i] = INF;
+        visited[i] = 0;
+        parent[i] = -1;
+    }
+    distance[source] = 0;
+    for (i = 0; i < n; i++)
+    {
+        min = INF;
+        u = -1;
+        for (j = 0; j < n; j++)
+        {
+            if (!visited[j] && distance[j] < min)
+            {
+                min = distance[j];
+                u = j;
+            }
+        }
+
+        if (u == -1)
+            break;
+        visited[u] = 1;
+        for (j = 0; j < n; j++)
+        {
+            if (!visited[j] &&cost[u][j] != INF &&distance[u] + cost[u][j] < distance[j])
+            {
+                distance[j] = distance[u] + cost[u][j];
+                parent[j] = u;
+            }
+        }
+    }
+}
+void displayPath(int distance[MAX], int parent[MAX], int source, int destination)
+{
+    printf("\n%-15s %-10s %-10s\n", "Destination", "Cost", "Nexthop");
+    printf("----------------------------------------\n");
+
+    if (distance[destination] == INF)
+    {
+        printf("%-15d %-10s %-10s\n", destination + 1, "INF", "-");
+        return;
+    }
+
+    if (destination == source)
+    {
+        printf("%-15d %-10d %-10s\n", destination + 1, 0, "Self");
+        return;
+    }
+    int next_hop = destination;
+    while (parent[next_hop] != source && parent[next_hop] != -1)
+    {
+        next_hop = parent[next_hop];
+    }
+
+    printf("%-15d %-10d %-10d\n", destination + 1, distance[destination], next_hop + 1);
+}
+void displayRoutingTable(int distance[MAX], int parent[MAX], int n, int source)
+{
+    printf("\nRouting Table for Source Node %d:\n\n", source + 1);
+    printf("%-15s %-10s %-10s\n", "Destination", "Cost", "Nexthop");
+    printf("----------------------------------------\n");
+    int i;
+    for ( i = 0; i < n; i++)
+    {
+        if (i == source)
+        {
+            printf("%-15d %-10d %-10s\n", i + 1, 0, "Self");
+            continue;
+        }
+
+        if (distance[i] == INF)
+        {
+            printf("%-15d %-10s %-10s\n", i + 1, "INF", "-");
+            continue;
+        }
+
+        int next_hop = i;
+        while (parent[next_hop] != source && parent[next_hop] != -1)
+        {
+            next_hop = parent[next_hop];
+        }
+
+        printf("%-15d %-10d %-10d\n", i + 1, distance[i], next_hop + 1);
+    }
+}
+[24bcs114@mepcolinux ex4]$cat dijkstrapp.c
+#include "dijkstra.h"
+
+int main()
+{
+    int n;
+    int cost[MAX][MAX];
+    int distance[MAX];
+    int parent[MAX];
+    int source, destination;
+    getInput(cost, &n, &source, &destination);
+    dijkstra(cost, n, source, distance, parent);
+    if (destination < 0 || destination >= n)
+    {
+        displayRoutingTable(distance, parent, n, source);
+    }
+    else
+    {
+        displayPath(distance, parent, source, destination);
+    }
+
+    return 0;
+}
+
+[24bcs114@mepcolinux ex4]$./dij
+Enter number of vertices: 3
+
+Enter the cost matrix:
+Cost from 1 to 1: 1
+Cost from 1 to 2: 2
+Cost from 1 to 3: 3
+Cost from 2 to 1: 4
+Cost from 2 to 2: 5
+Cost from 2 to 3: 6
+Cost from 3 to 1: 7
+Cost from 3 to 2: 8
+Cost from 3 to 3: 9
+
+Enter source vertex: 1
+Enter destination vertex: 3
+
+Destination     Cost       Nexthop
+----------------------------------------
+3               3          3
+[24bcs114@mepcolinux ex4]$./dij
+Enter number of vertices: 3
+
+Enter the cost matrix:
+Cost from 1 to 1: 1
+Cost from 1 to 2: 2
+Cost from 1 to 3: 3
+Cost from 2 to 1: 0
+Cost from 2 to 2: 4
+Cost from 2 to 3: 5
+Cost from 3 to 1: 6
+Cost from 3 to 2: 0
+Cost from 3 to 3: 0
+
+Enter source vertex: 1
+Enter destination vertex: 5
+
+Routing Table for Source Node 1:
+
+Destination     Cost       Nexthop
+----------------------------------------
+1               0          Self
+2               2          2
+3               3          3
+[24bcs114@mepcolinux ex4]$cd ex5a/
+[24bcs114@mepcolinux ex5a]$cat bell.c
+#include <stdio.h>
+#define INF 999
+
+int main()
+{
+    int n, i, j, k;
+    int cost[10][10];
+    int dist[10];
+    int parent[10];
+    int start, end;
+    int negativeCycle = 0;
+
+    printf("Enter number of routers: ");
+    scanf("%d", &n);
+
+    printf("Enter cost matrix:\n");
+    for(i = 0; i < n; i++)
+    {
+        for(j = 0; j < j; j++) // Correcting user logic loop bounds if intended
+        {}
+    }
+
+    for(i = 0; i < n; i++)
+    {
+        for(j = 0; j < n; j++)
+        {
+            scanf("%d", &cost[i][j]);
+
+            if(cost[i][j] == 0 && i != j)
+                cost[i][j] = INF;
+        }
+    }
+
+    printf("Enter start point: ");
+    scanf("%d", &start);
+    printf("Enter end point: ");
+    scanf("%d", &end);
+
+    for(i = 0; i < n; i++)
+    {
+        dist[i] = INF;
+        parent[i] = -1;
+    }
+    dist[start] = 0;
+
+    for(k = 0; k < n - 1; k++)
+    {
+        for(i = 0; i < n; i++)
+        {
+            for(j = 0; j < n; j++)
+            {
+                if(dist[i] != INF && cost[i][j] != INF && dist[j] > dist[i] + cost[i][j])
+                {
+                    dist[j] = dist[i] + cost[i][j];
+                    parent[j] = i;
+                }
+            }
+        }
+    }
+
+    for(i = 0; i < n; i++)
+    {
+        for(j = 0; j < n; j++)
+        {
+            if(dist[i] != INF && cost[i][j] != INF && dist[j] > dist[i] + cost[i][j])
+            {
+                negativeCycle = 1;
+            }
+        }
+    }
+
+    printf("\nStart point : %d", start);
+    printf("\nEnd point   : %d", end);
+
+    if(negativeCycle == 1)
+    {
+        printf("\nNegative cycle formed.");
+        printf("\nShortest distance cannot be determined.\n");
+    }
+    else
+    {
+        printf("\nNo negative cycle formed.");
+        if(dist[end] == INF)
+        {
+            printf("\nNo path exists.\n");
+        }
+        else
+        {
+            printf("\nShortest distance : %d", dist[end]);
+
+            printf("\nPath: ");
+            int path[10];
+            int count = 0;
+            int curr = end;
+
+            while(curr != -1)
+            {
+                path[count++] = curr;
+                curr = parent[curr];
+            }
+
+            for(i = count - 1; i >= 0; i--)
+            {
+                printf("%d", path[i]);
+                if(i > 0)
+                {
+                    printf(" -> ");
+                }
+            }
+            printf("\n");
+        }
+    }
+    return 0;
+}
+
+[24bcs114@mepcolinux ex5a]$./bell
+Enter number of routers: 5
+Enter cost matrix:
+0 6 7 999 999
+999 0 8 5 -4
+999 9999 0 -3 9
+999 999 999 0 7
+999 999 999 999 0
+Enter start point: 0
+Enter end point: 3
+
+Start point : 0
+End point   : 3
+No negative cycle formed.
+Shortest distance : 4
+Path: 0 -> 2 -> 3
+[24bcs114@mepcolinux ex5a]$./bell
+Enter number of routers: 5
+Enter cost matrix:
+0 4 2 999 999
+999 0 999 3 999
+999 -3 0 999 999
+999 999 -5 0 2
+999 999 999 999 0
+Enter start point: 0
+Enter end point: 4
+
+Start point : 0
+End point   : 4
+Negative cycle formed.
+Shortest distance cannot be determined.
+[24bcs114@mepcolinux ex5a]$exit
+exit
