@@ -1,0 +1,153 @@
+[24bcs114@mepcolinux ex6]$cat server.c
+#include "head.h"
+
+int main()
+{
+    int sockfd, client;
+    struct sockaddr_in servaddr, clientaddr;
+    socklen_t address_len;
+    char s[50];
+    int n;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockfd < 0)
+    {
+        perror("Socket creation failed");
+        return -1;
+    }
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
+
+    if (bind(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    {
+        perror("Bind failed");
+        return -1;
+    }
+
+    if (listen(sockfd, 1) < 0)
+    {
+        perror("Listen failed");
+        return -1;
+    }
+
+    printf("Server waiting for client...\n");
+
+    address_len = sizeof(clientaddr);
+
+    client = accept(sockfd, (struct sockaddr *)&clientaddr, &address_len);
+
+    if (client < 0)
+    {
+        perror("Accept failed");
+        return -1;
+    }
+
+    printf("Client connected.\n");
+
+    do
+    {
+        n = recv(client, s, sizeof(s) - 1, 0);
+
+        if (n <= 0)
+            break;
+
+        s[n] = '\0';
+
+        printf("Client: %s\n", s);
+
+        if (send(client, s, strlen(s), 0) < 0)
+        {
+            perror("Send failed");
+            break;
+        }
+
+    } while (s[0] != '0');
+
+    close(client);
+    close(sockfd);
+
+    return 0;
+}
+
+[24bcs114@mepcolinux ex6]$cat serout
+[24bcs114@mepcolinux ex6]$./ser
+Server waiting for client...
+Client connected.
+Client: hi
+Client: hello
+Client: welcome
+Client: 0
+[24bcs114@mepcolinux ex6]$
+[24bcs114@mepcolinux ex6]$cat client.c
+#include "head.h"
+
+int main()
+{
+    int sockfd;
+    struct sockaddr_in servaddr;
+    char s1[50];
+    int n;
+
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockfd < 0)
+    {
+        perror("Socket creation failed");
+        return -1;
+    }
+
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
+
+    if (connect(sockfd, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
+    {
+        perror("Connection failed");
+        return -1;
+    }
+
+    printf("Connected to server.\n");
+
+    do
+    {
+        printf("Enter: ");
+        scanf("%49s", s1);
+
+        if (send(sockfd, s1, strlen(s1), 0) < 0)
+        {
+            perror("Send failed");
+            break;
+        }
+
+        n = recv(sockfd, s1, sizeof(s1) - 1, 0);
+
+        if (n <= 0)
+            break;
+
+        s1[n] = '\0';
+
+        printf("Server: %s\n", s1);
+
+    } while (s1[0] != '0');
+
+    close(sockfd);
+
+    return 0;
+}
+[24bcs114@mepcolinux ex6]$cat clout
+[24bcs114@mepcolinux ex6]$./cl
+Connected to server.
+Enter: hi
+Server: hi
+Enter: hello
+Server: hello
+Enter: welcome
+Server: welcome
+Enter: 0
+Server: 0
+[24bcs114@mepcolinux ex6]$
+[24bcs114@mepcolinux ex6]$exit
+exit
