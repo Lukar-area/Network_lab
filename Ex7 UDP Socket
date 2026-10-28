@@ -1,0 +1,164 @@
+[24bcs114@mepcolinux ex7]$cat server.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define PORT 8000
+
+int main() {
+    int s, c, r;
+    struct sockaddr_in a, b;
+    socklen_t len = sizeof(b);
+    char buf[100], host[100], ip[100];
+
+    s = socket(AF_INET, SOCK_STREAM, 0);
+    if (s < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    a.sin_family = AF_INET;
+    a.sin_port = htons(PORT);
+    a.sin_addr.s_addr = INADDR_ANY;
+
+    if (bind(s, (struct sockaddr *)&a, sizeof(a)) < 0) {
+        perror("bind");
+        exit(1);
+    }
+
+    if (listen(s, 5) < 0) {
+        perror("listen");
+        exit(1);
+    }
+
+    printf("Server waiting...\n");
+
+    c = accept(s, (struct sockaddr *)&b, &len);
+    if (c < 0) {
+        perror("accept");
+        exit(1);
+    }
+
+    while (1) {
+        r = recv(c, buf, sizeof(buf) - 1, 0);
+
+        if (r <= 0)
+            break;
+
+        buf[r] = '\0';
+        buf[strcspn(buf, "\n")] = '\0';
+
+        FILE *f = fopen("data.txt", "r");
+
+        if (f == NULL) {
+            send(c, "File error", 10, 0);
+            continue;
+        }
+
+        int found = 0;
+
+        while (fscanf(f, "%s %s", host, ip) == 2) {
+            if (strcmp(host, buf) == 0) {
+                send(c, ip, strlen(ip), 0);
+                printf("Found hostname: %s\n", host);
+                found = 1;
+                break;
+            }
+        }
+
+        fclose(f);
+
+        if (!found) {
+            strcpy(ip, "Hostname not found");
+            send(c, ip, strlen(ip), 0);
+            printf("Hostname not found\n");
+        }
+    }
+
+    close(c);
+    close(s);
+
+    return 0;
+}
+[24bcs114@mepcolinux ex7]$cat serout
+[24bcs114@mepcolinux ex7]$./ser
+Server waiting...
+Found hostname: erp.mepcoeng.ac.in
+Found hostname: firewall.mepcoeng.ac.in
+Hostname not found
+Hostname not found
+[24bcs114@mepcolinux ex7]$cat client.c
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
+#define PORT 8000
+
+int main() {
+    int s, r;
+    struct sockaddr_in a;
+    char buf[100];
+
+    s = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (s < 0) {
+        perror("socket");
+        exit(1);
+    }
+
+    a.sin_family = AF_INET;
+    a.sin_port = htons(PORT);
+    a.sin_addr.s_addr = inet_addr("127.0.0.1");
+
+    if (connect(s, (struct sockaddr *)&a, sizeof(a)) < 0) {
+        perror("connect");
+        exit(1);
+    }
+
+    while (1) {
+        printf("Enter hostname: ");
+        fgets(buf, sizeof(buf), stdin);
+
+        buf[strcspn(buf, "\n")] = '\0';
+
+        send(s, buf, strlen(buf), 0);
+
+        r = recv(s, buf, sizeof(buf) - 1, 0);
+
+        if (r <= 0)
+            break;
+
+        buf[r] = '\0';
+
+        printf("Server: %s\n", buf);
+    }
+
+    close(s);
+
+    return 0;
+}
+[24bcs114@mepcolinux ex7]$cat clout
+[24bcs114@mepcolinux ex7]$./cl
+Enter hostname: erp.mepcoeng.ac.in
+Server: 172.16.16.180
+Enter hostname: firewall.mepcoeng.ac.in
+Server: 172.16.16.222
+Enter hostname: abc.com
+Server: Hostname not found
+Enter hostname: o
+Server: Hostname not found
+[24bcs114@mepcolinux ex7]$cat head.h
+#include<stdio.h>
+#include<stdlib.h>
+#include<sys/socket.h>
+#define PORT 100
+[24bcs114@mepcolinux ex7]$exit
+exit
