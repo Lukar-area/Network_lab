@@ -1,0 +1,232 @@
+[24bcs114@mepcolinux ex3]$cat head.h
+#include<stdio.h>
+#include<string.h>
+#include<stdlib.h>
+
+#define MAX_BITS 64
+
+int is_pow_two(int x);
+int compute(int m);
+void place_data(int code[], int n, int data[], int m);
+void calculate_parity(int code[], int n, int r);
+int calculate_syndrome(int codeword[], int n, int r);
+void print_codeword(int code[], int n);
+[24bcs114@mepcolinux ex3]$cat hamimp.c
+#include"head.h"
+int is_pow_two(int x)
+{
+    return x && !(x & (x - 1));
+}
+
+int compute(int m)
+{
+    int r = 0;
+    while ((1 << r) < (m + r + 1))
+    {
+        r++;
+    }
+    return r;
+}
+
+void place_data(int code[], int n, int data[], int m)
+{
+    int di = 0;
+    int pos;
+
+    for (pos = 1; pos <= n; pos++)
+    {
+        if (is_pow_two(pos))
+        {
+            code[pos] = 0;
+        }
+        else
+        {
+            code[pos] = data[di++];
+        }
+    }
+}
+
+void calculate_parity(int code[], int n, int r)
+{
+    int i, pos;
+
+    for (i = 0; i < r; i++)
+    {
+        int parity_pos = 1 << i;
+        int sum = 0;
+
+        for (pos = 1; pos <= n; pos++)
+        {
+            if (pos & parity_pos)
+            {
+                sum ^= code[pos];
+            }
+        }
+
+        code[parity_pos] = sum;
+    }
+}
+
+void print_codeword(int code[], int n)
+{
+    int pos;
+
+    for (pos = n; pos >= 1; pos--)
+    {
+        printf("%d", code[pos]);
+    }
+    printf("\n");
+}
+
+int calculate_syndrome(int codeword[], int n, int r)
+{
+    int syn = 0;
+    int i, pos;
+
+    for (i = 0; i < r; i++)
+    {
+        int check_list = 1 << i;
+        int sum = 0;
+
+        for (pos = 1; pos <= n; pos++)
+        {
+            if (pos & check_list)
+            {
+                sum ^= codeword[pos];
+            }
+        }
+
+        if (sum)
+        {
+            syn |= check_list;
+        }
+    }
+
+    return syn;
+}
+
+[24bcs114@mepcolinux ex3]$cat hamapp.c
+#include"head.h"
+int main()
+{
+    int m;
+    char s[32];
+
+    printf("Enter data bits: ");
+    scanf("%31s", s);
+
+    m = strlen(s);
+
+    int data[MAX_BITS];
+    int i;
+
+    for (i = 0; i < m; i++)
+    {
+        data[i] = s[i] - '0';
+    }
+
+    int r = compute(m);
+    int n = m + r;
+
+    printf("No. of redundant bits required: %d\n", r);
+    printf("Code word length: %d\n", n);
+
+    int codeword[MAX_BITS] = {0};
+
+    place_data(codeword, n, data, m);
+    calculate_parity(codeword, n, r);
+
+    printf("Codeword: ");
+    print_codeword(codeword, n);
+
+    int ch;
+
+    printf("Enter 1 to introduce error, 0 to continue: ");
+    scanf("%d", &ch);
+
+    int received[MAX_BITS];
+
+    for (i = 1; i <= n; i++)
+    {
+        received[i] = codeword[i];
+    }
+
+    if (ch == 1)
+    {
+        int c;
+
+        printf("Enter bit position to introduce error: ");
+        scanf("%d", &c);
+
+        if (c < 1 || c > n)
+        {
+            printf("Invalid position\n");
+            return 0;
+        }
+
+        received[c] ^= 1;
+
+        printf("Received codeword: ");
+        print_codeword(received, n);
+    }
+
+    int syndrome = calculate_syndrome(received, n, r);
+
+    printf("Syndrome: %d\n", syndrome);
+
+    if (syndrome == 0)
+    {
+        printf("No error detected\n");
+    }
+    else if (syndrome <= n)
+    {
+        printf("Error detected at position: %d\n", syndrome);
+        received[syndrome] ^= 1;
+        printf("Corrected codeword: ");
+        print_codeword(received, n);
+        if (calculate_syndrome(received, n, r) == 0)
+        {
+            printf("Rechecking...\n");
+            printf("No error detected\n");
+        }
+    }
+    else
+    {
+        printf("Multiple errors detected\n");
+    }
+    printf("Extracted data bits: ");
+    for (i = 1; i <= n; i++)
+    {
+        if (!is_pow_two(i))
+        {
+            printf("%d", received[i]);
+        }
+    }
+    printf("\n");
+    return 0;
+}
+[24bcs114@mepcolinux ex3]$./ham
+Enter data bits: 11110000100
+No. of redundant bits required: 4
+Code word length: 15
+Codeword: 001000011110110
+Enter 1 to introduce error, 0 to continue: 0
+Syndrome: 0
+No error detected
+Extracted data bits: 11110000100
+[24bcs114@mepcolinux ex3]$./ham
+Enter data bits: 11110000100
+No. of redundant bits required: 4
+Code word length: 15
+Codeword: 001000011110110
+Enter 1 to introduce error, 0 to continue: 1
+Enter bit position to introduce error: 4
+Received codeword: 001000011111110
+Syndrome: 4
+Error detected at position: 4
+Corrected codeword: 001000011110110
+Rechecking...
+No error detected
+Extracted data bits: 11110000100
+[24bcs114@mepcolinux ex3]$exit
+exit
